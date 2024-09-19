@@ -1,11 +1,16 @@
 #!/bin/bash
 
-GFS_DATE="20240824"
-GFS_TIME="18"; # 00, 06, 12, 18
+# "printf '%(%Y%m%d)T' -1" to generate GFS_DATE
+set -e
+
+GFS_DATE=$(date --utc '+%Y%m%d')
+GFS_TIME=$(( $(date --utc '+%H') / 6 * 6)) # 00, 06, 12, 18, UTC hours when NOAA releases a new forecast
 RES="1p00" # 0p25, 0p50 or 1p00
 BBOX="leftlon=0&rightlon=360&toplat=90&bottomlat=-90"
 LEVEL="lev_1000_mb=on"
 FORECASTS=("f000" "f006" "f012" "f018" "f024" "f030" "f036")
+
+echo "$GFS_DATE - $GFS_TIME"
 
 # LEVEL="lev_20_m_above_ground=on"
 # LEVEL="lev_500_mb=on"
