@@ -4,7 +4,8 @@
 set -e
 
 GFS_DATE=$(date --utc '+%Y%m%d')
-GFS_TIME=$(( $(date --utc '+%H') / 6 * 6)) # 00, 06, 12, 18, UTC hours when NOAA releases a new forecast
+GFS_TIME=$(( $(date --utc '+%H') / 6 * 6)) 
+GFS_TIME=$(printf %02d $GFS_TIME) # 00, 06, 12, 18, UTC hours when NOAA releases a new forecast
 RES="1p00" # 0p25, 0p50 or 1p00
 BBOX="leftlon=0&rightlon=360&toplat=90&bottomlat=-90"
 LEVEL="lev_1000_mb=on"
