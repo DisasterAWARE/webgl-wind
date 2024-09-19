@@ -27,9 +27,9 @@ do
 
   FILENAME="gfs.t${GFS_TIME}z.pgrb2.${RES}.${FORECAST}"
   echo "Downloading GFS_URL: ${GFS_URL}&var_UGRD=on"
-  curl "${GFS_URL}&file=${FILENAME}&var_UGRD=on" -o utmp.grib
+  curl -s "${GFS_URL}&file=${FILENAME}&var_UGRD=on" -o utmp.grib
   echo "Downloading GFS_URL: ${GFS_URL}&var_VGRD=on"
-  curl "${GFS_URL}&file=${FILENAME}&var_VGRD=on" -o vtmp.grib
+  curl -s "${GFS_URL}&file=${FILENAME}&var_VGRD=on" -o vtmp.grib
 
   grib_set -r -s packingType=grid_simple utmp.grib utmp_processed.grib
   grib_set -r -s packingType=grid_simple vtmp.grib vtmp_processed.grib
