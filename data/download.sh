@@ -4,7 +4,7 @@
 set -e
 
 GFS_DATE=$(date --utc '+%Y%m%d')
-GFS_TIME=$(( $(date --utc '+%H') / 6 * 6)) 
+GFS_TIME=$(( ($(date --utc '+%H') - 4) / 6 * 6))  # takes NOAA about 4 hours to generate a forecast 
 GFS_TIME=$(printf %02d $GFS_TIME) # 00, 06, 12, 18, UTC hours when NOAA releases a new forecast
 RES="1p00" # 0p25, 0p50 or 1p00
 BBOX="leftlon=0&rightlon=360&toplat=90&bottomlat=-90"
@@ -42,6 +42,6 @@ do
   node ${DIR}/prepare.js ${GFS_DATE}${GFS_TIME}"${FORECAST}"
 
   rm tmp.json
-
 done
 
+node manifest.js ${GFS_DATE}${GFS_TIME}*.json
