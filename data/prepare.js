@@ -117,6 +117,10 @@ function movingAverage(array, radius) {
 }
 
 function formatDate(date, time) {
-    return date.substr(0, 4) + '-' + date.substr(4, 2) + '-' + date.substr(6, 2) + 'T' +
-        (time < 10 ? '0' + time : time) + ':00Z';
+    // Change to export in bash-compatible date
+    let year = date.substr(0, 4)
+    let month = date.substr(4, 2)
+    let day = date.substr(6, 2)
+    let hour = (time < 10 ? '0' + time : time)
+    return year + '-' + month + '-' + day + 'T' + hour + '+00:00';
 }

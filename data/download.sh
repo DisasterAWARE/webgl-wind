@@ -41,7 +41,12 @@ do
   DIR=`dirname $0`
   node ${DIR}/prepare.js ${GFS_DATE}${GFS_TIME}"${FORECAST}"
 
-  rm tmp.json
+  # Add forecast hours to date
+  ADJUSTED_DATE=$(date -d "$(cat "${GFS_DATE}${GFS_TIME}${FORECAST}.json" | jq -r .date )+${FORECAST#f} hours" '+%FT%H:00Z')
+  cat ${GFS_DATE}${GFS_TIME}${FORECAST}.json | jq ".date = \"$ADJUSTED_DATE\"" > tmp2.json
+  mv tmp2.json ${GFS_DATE}${GFS_TIME}${FORECAST}.json
+
+  rm -f tmp.json tmp2.json
 done
 
 node manifest.js ${GFS_DATE}${GFS_TIME}*.json
