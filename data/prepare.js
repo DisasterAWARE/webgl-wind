@@ -121,6 +121,8 @@ function formatDate(date, time) {
     let year = date.substr(0, 4)
     let month = date.substr(4, 2)
     let day = date.substr(6, 2)
-    let hour = (time < 10 ? '0' + time : time)
-    return year + '-' + month + '-' + day + 'T' + hour + '+00:00';
+    time = time.toString().padStart(4, "0")
+    let hour = time.substr(0,2)
+    let minutes = time.substr(2,2)
+    return year + '-' + month + '-' + day + 'T' + hour + ':' + minutes + '+00:00';
 }
