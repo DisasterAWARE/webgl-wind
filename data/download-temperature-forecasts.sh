@@ -1,16 +1,11 @@
 #!/bin/bash
 
-# "printf '%(%Y%m%d)T' -1" to generate GFS_DATE
 set -e
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  GFS_DATE=$(date -u '+%Y%m%d')
-  GFS_TIME=$(( ($(date -u '+%H') - 4) / 6 * 6))  # takes NOAA about 4 hours to generate a forecast
-else
-  GFS_DATE=$(date --utc '+%Y%m%d')
-  GFS_TIME=$(( ($(date --utc '+%H') - 4) / 6 * 6))  # takes NOAA about 4 hours to generate a forecast
-fi
+GFS_DATE=$(date -u '+%Y%m%d')
+GFS_TIME=$(( ($(date -u '+%H') - 4) / 6 * 6))  # takes NOAA about 4 hours to generate a forecast
 GFS_TIME=$(printf %02d $GFS_TIME) # 00, 06, 12, 18, UTC hours when NOAA releases a new forecast
+
 RES="0p50" # 0p25, 0p50 or 1p00
 Hi_RES="0p25"
 BBOX="leftlon=0&rightlon=360&toplat=90&bottomlat=-90"
@@ -18,8 +13,9 @@ WIND_LEVEL="lev_10_m_above_ground=on"
 TEMP_LEVEL="lev_2_m_above_ground=on"
 FORECASTS=("f000" "f006" "f012" "f018" "f024" "f030" "f036")
 
-GFS_DATE="20241211";
-GFS_TIME="18";
+TYPES=("temperature" "wind" "cloud" "snow-depth")
+
+# Note: could check if date or gdate should be used for MacOS to unify the if bits
 
 echo "$GFS_DATE - $GFS_TIME"
 
@@ -35,6 +31,11 @@ GFS_HI_RES_URL="https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_${Hi_RES}.pl?dir
 #https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p50.pl?dir=%2Fgfs.20241205%2F18%2Fatmos&file=gfs.t18z.pgrb2full.0p50.f000&var_TCDC=on&lev_entire_atmosphere=on&toplat=90&leftlon=0&rightlon=360&bottomlat=-90
 # gfs.t18z.pgrb2.1p00.anl
 # gfs.t18z.pgrb2.1p00.f003
+
+for TYPE in "${TYPES[@]}"
+do
+  mkdir -p $TYPE
+done
 
 for FORECAST in "${FORECASTS[@]}"
 do
@@ -74,24 +75,23 @@ do
   echo "$c_json" > debug_c.json
   echo "$s_json" > debug_s.json
 
-  # Create wind JSON file
   printf "{\"u\":$u_json,\"v\":$v_json}" > wind/tmp.json
-
-  # Create temperature JSON file
   printf "{\"u\":$u_json,\"v\":$v_json,\"k\":$k_json}" > temperature/tmp.json
-
   echo "{\"u\":$u_json" > cloud/tmp.json
   echo ",\"v\":$v_json" >> cloud/tmp.json
   echo ",\"c\":$c_json}" >> cloud/tmp.json
   echo "{\"s\":$s_json}" > snow-depth/tmp.json
 
+  # rm *.grib? this seems to be missing stmp_processed.grib
   rm utmp.grib vtmp.grib utmp_processed.grib vtmp_processed.grib ktmp.grib ktmp_processed.grib ctmp.grib ctmp_processed.grib
 
   DIR=`dirname $0`
-  node ${DIR}/wind-prepare.js ${GFS_DATE}${GFS_TIME}"${FORECAST}"
-  node ${DIR}/temperature-prepare.js ${GFS_DATE}${GFS_TIME}"${FORECAST}"
-  node ${DIR}/cloud-prepare.js ${GFS_DATE}${GFS_TIME}"${FORECAST}"
-  node ${DIR}/snow-depth-prepare.js ${GFS_DATE}${GFS_TIME}"${FORECAST}"
+
+  # could maybe consolidate into other for loop after adjusted date calculation
+  for TYPE in "${TYPES[@]}"
+  do
+    node ${DIR}/$TYPE-prepare.js ${GFS_DATE}${GFS_TIME}"${FORECAST}"
+  done
 
   HOURS=${FORECAST#f}
 
@@ -105,25 +105,16 @@ do
     ADJUSTED_DATE=$(date -d "$(cat "temperature/${GFS_DATE}${GFS_TIME}${FORECAST}.json" | jq -r .date )+${HOURS} hours" '+%FT%H:00Z')
   fi
 
-  cat "temperature/"${GFS_DATE}${GFS_TIME}${FORECAST}.json | jq ".date = \"$ADJUSTED_DATE\"" > temperature/tmp2.json
-  mv temperature/tmp2.json temperature/${GFS_DATE}${GFS_TIME}${FORECAST}.json
-  rm -f temperature/tmp.json temperature/tmp2.json
-
-  cat "wind/"${GFS_DATE}${GFS_TIME}${FORECAST}.json | jq ".date = \"$ADJUSTED_DATE\"" > wind/tmp2.json
-  mv wind/tmp2.json wind/${GFS_DATE}${GFS_TIME}${FORECAST}.json
-  rm -f wind/tmp.json wind/tmp2.json
-
-  cat "cloud/"${GFS_DATE}${GFS_TIME}${FORECAST}.json | jq ".date = \"$ADJUSTED_DATE\"" > cloud/tmp2.json
-  mv cloud/tmp2.json cloud/${GFS_DATE}${GFS_TIME}${FORECAST}.json
-  rm -f cloud/tmp.json cloud/tmp2.json
-
-  cat "snow-depth/"${GFS_DATE}${GFS_TIME}${FORECAST}.json | jq ".date = \"$ADJUSTED_DATE\"" > snow-depth/tmp2.json
-  mv snow-depth/tmp2.json snow-depth/${GFS_DATE}${GFS_TIME}${FORECAST}.json
-  rm -f snow-depth/tmp.json snow-depth/tmp2.json
-
+  # adjust dates
+  for TYPE in "${TYPES[@]}"
+  do
+    cat "$TYPE/"${GFS_DATE}${GFS_TIME}${FORECAST}.json | jq ".date = \"$ADJUSTED_DATE\"" > $TYPE/tmp2.json
+    mv $TYPE/tmp2.json $TYPE/${GFS_DATE}${GFS_TIME}${FORECAST}.json
+    rm -f $TYPE/tmp*.json
+  done
 done
 
-node temperature-manifest-builder.js temperature/${GFS_DATE}${GFS_TIME}*.json
-node wind-manifest-builder.js wind/${GFS_DATE}${GFS_TIME}*.json
-node cloud-manifest-builder.js cloud/${GFS_DATE}${GFS_TIME}*.json
-node snow-depth-manifest-builder.js snow-depth/${GFS_DATE}${GFS_TIME}*.json
+for TYPE in "${TYPES[@]}"
+do
+  node $TYPE-manifest-builder.js $TYPE/${GFS_DATE}${GFS_TIME}*.json
+done
