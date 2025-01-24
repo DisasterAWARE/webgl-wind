@@ -49,4 +49,4 @@ do
   rm -f tmp.json tmp2.json
 done
 
-node manifest.js ${GFS_DATE}${GFS_TIME}*.json
+node manifest.js "." ${GFS_DATE}${GFS_TIME}*.json
