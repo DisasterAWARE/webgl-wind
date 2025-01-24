@@ -70,10 +70,10 @@ do
   c_json=$(grib_dump -j ctmp_processed.grib)
   s_json=$(grib_dump -j stmp_processed.grib)
 
-  echo "$u_json" > debug_u.json
-  echo "$v_json" > debug_v.json
-  echo "$c_json" > debug_c.json
-  echo "$s_json" > debug_s.json
+  # echo "$u_json" > debug_u.json
+  # echo "$v_json" > debug_v.json
+  # echo "$c_json" > debug_c.json
+  # echo "$s_json" > debug_s.json
 
   printf "{\"u\":$u_json,\"v\":$v_json}" > wind/tmp.json
   printf "{\"u\":$u_json,\"v\":$v_json,\"k\":$k_json}" > temperature/tmp.json
@@ -82,8 +82,7 @@ do
   echo ",\"c\":$c_json}" >> cloud/tmp.json
   echo "{\"s\":$s_json}" > snow-depth/tmp.json
 
-  # rm *.grib? this seems to be missing stmp_processed.grib
-  rm utmp.grib vtmp.grib utmp_processed.grib vtmp_processed.grib ktmp.grib ktmp_processed.grib ctmp.grib ctmp_processed.grib
+  rm *.grib
 
   DIR=`dirname $0`
 
@@ -100,7 +99,7 @@ do
   if [[ "$OSTYPE" == "darwin"* ]]; then
     NEW_DATE=$(date -u -j -f "%Y%m%d%H" "${GFS_DATE}${GFS_TIME}" "+%Y-%m-%dT%H:00:00Z")
     ADJUSTED_DATE=$(date -u -j -f "%Y-%m-%dT%H:%M:%SZ" -v+"${HOURS}"H "$NEW_DATE" '+%Y-%m-%dT%H:00:00Z')
-#    echo "Adjusted Date: " + "$ADJUSTED_DATE"
+  #    echo "Adjusted Date: " + "$ADJUSTED_DATE"
   else
     ADJUSTED_DATE=$(date -d "$(cat "temperature/${GFS_DATE}${GFS_TIME}${FORECAST}.json" | jq -r .date )+${HOURS} hours" '+%FT%H:00Z')
   fi
@@ -116,5 +115,5 @@ done
 
 for TYPE in "${TYPES[@]}"
 do
-  node $TYPE-manifest-builder.js $TYPE/${GFS_DATE}${GFS_TIME}*.json
+  node manifest.js $TYPE $TYPE/${GFS_DATE}${GFS_TIME}*.json
 done
